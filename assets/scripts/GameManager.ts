@@ -1,5 +1,28 @@
-import { _decorator, Component, director, input, Input, instantiate, Node, Prefab, RigidBody2D, Vec2 } from 'cc';
+import {
+  _decorator,
+  Component,
+  director,
+  input,
+  Input,
+  instantiate,
+  Node,
+  Prefab,
+  RigidBody2D,
+  Vec2,
+  Collider2D,
+  Contact2DType,
+  Label,
+} from 'cc';
 const { ccclass, property } = _decorator;
+
+type MainPrefabsSpeedType = number;
+type AddSensorType = {
+  prefab: Prefab;
+  speed: MainPrefabsSpeedType;
+  positionX: number;
+  positionY: number;
+  index?: number;
+};
 
 @ccclass('GameManager')
 export class GameManager extends Component {
@@ -12,10 +35,33 @@ export class GameManager extends Component {
   @property(Prefab)
   bottomObstacle: Prefab;
 
+  @property(Prefab)
+  sensor: Prefab;
+
+  @property(Label)
+  scoreLabel: Label;
+
   isGameStarted: boolean = false;
+  score: number = 0;
+  speedPrefabs: MainPrefabsSpeedType = 25;
 
   start() {
     input.on(Input.EventType.TOUCH_START, this.jump, this);
+    this.player.getComponent(Collider2D).on(Contact2DType.BEGIN_CONTACT, this.onBeginContact, this);
+    this.player.getComponent(Collider2D).on(Contact2DType.END_CONTACT, this.endContact, this);
+  }
+
+  private onBeginContact(selfCollider: Collider2D, otherCollider: Collider2D) {
+    if (otherCollider.node.name !== 'Sensor') {
+      console.log('You loose');
+    }
+  }
+
+  private endContact(selfCollider: Collider2D, otherCollider: Collider2D) {
+    if (otherCollider.node.name === 'Sensor') {
+      this.score += 1;
+      this.scoreLabel.string = `Score: ${this.score}`;
+    }
   }
 
   private jump() {
@@ -24,32 +70,40 @@ export class GameManager extends Component {
     body.applyLinearImpulseToCenter(new Vec2(0, 700), true);
 
     if (!this.isGameStarted) {
-      this.schedule(() => this.generateObstacles(), 0.8);
+      this.schedule(() => this.generateObstacles(this.speedPrefabs), 0.8);
+
       this.isGameStarted = true;
     }
   }
 
-  private generateObstacles() {
-    let canvas = director.getScene().getChildByName('Canvas');
+  private generateObstacles(speed: MainPrefabsSpeedType) {
+    this.addMainPrefab({ prefab: this.topObstacle, speed, positionX: 550, positionY: 750 });
+    this.addMainPrefab({ prefab: this.bottomObstacle, speed, positionX: 550, positionY: -750 });
+    this.addMainPrefab({ prefab: this.sensor, speed, positionX: 550, positionY: 0 });
+  }
 
-    let speed: number = 25;
+  private addMainPrefab({ prefab, speed, positionX, positionY, index = 3 }: AddSensorType) {
+    let canvas = this.getCurrentCanvas();
 
-    let topObstacle = instantiate(this.topObstacle);
-    topObstacle.setParent(canvas);
-    topObstacle.setPosition(550, 750);
-    topObstacle.setSiblingIndex(3);
-    topObstacle.getComponent(RigidBody2D).linearVelocity = new Vec2(-speed, 0);
+    let mainPrefab = instantiate(prefab);
+    mainPrefab.setParent(canvas);
+    mainPrefab.setPosition(positionX, positionY);
+    mainPrefab.setSiblingIndex(index);
+    mainPrefab.getComponent(RigidBody2D).linearVelocity = new Vec2(-speed, 0);
 
-    let bottomObstacle = instantiate(this.bottomObstacle);
-    bottomObstacle.setParent(canvas);
-    bottomObstacle.setPosition(550, -750);
-    bottomObstacle.setSiblingIndex(3);
-    bottomObstacle.getComponent(RigidBody2D).linearVelocity = new Vec2(-speed, 0);
+    this.destroyMainNode(mainPrefab);
+  }
+
+  private getCurrentCanvas(): Node {
+    return director.getScene().getChildByName('Canvas');
+  }
+
+  private destroyMainNode(prefab: Node) {
+    let delay: number = 2;
 
     this.scheduleOnce(() => {
-      topObstacle.destroy();
-      bottomObstacle.destroy();
-    }, 2);
+      prefab.destroy();
+    }, delay);
   }
 
   update(deltaTime: number) {}

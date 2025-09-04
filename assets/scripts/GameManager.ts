@@ -77,9 +77,11 @@ export class GameManager extends Component {
   }
 
   private generateObstacles(speed: MainPrefabsSpeedType) {
-    this.addMainPrefab({ prefab: this.topObstacle, speed, positionX: 550, positionY: 750 });
-    this.addMainPrefab({ prefab: this.bottomObstacle, speed, positionX: 550, positionY: -750 });
-    this.addMainPrefab({ prefab: this.sensor, speed, positionX: 550, positionY: 0 });
+    let yRandom = (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 300);
+
+    this.addMainPrefab({ prefab: this.topObstacle, speed, positionX: 550, positionY: 750 + yRandom });
+    this.addMainPrefab({ prefab: this.bottomObstacle, speed, positionX: 550, positionY: -750 + yRandom });
+    this.addMainPrefab({ prefab: this.sensor, speed, positionX: 550, positionY: yRandom });
   }
 
   private addMainPrefab({ prefab, speed, positionX, positionY, index = 3 }: AddSensorType) {

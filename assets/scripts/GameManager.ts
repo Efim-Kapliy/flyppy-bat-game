@@ -29,6 +29,9 @@ export class GameManager extends Component {
   @property(Node)
   player: Node;
 
+  @property(Node)
+  failureWindow: Node;
+
   @property(Prefab)
   topObstacle: Prefab;
 
@@ -53,7 +56,16 @@ export class GameManager extends Component {
 
   private onBeginContact(selfCollider: Collider2D, otherCollider: Collider2D) {
     if (otherCollider.node.name !== 'Sensor') {
-      console.log('You loose');
+      this.failureWindow.active = true;
+      this.unscheduleAllCallbacks();
+      director
+        .getScene()
+        .getChildByName('Canvas')
+        .children.forEach((value) => {
+          if (value.name === 'TopObstacle' || value.name === 'BottomObstacle' || value.name === 'Sensor') {
+            value.getComponent(RigidBody2D).linearVelocity = new Vec2(0, 0);
+          }
+        });
     }
   }
 
